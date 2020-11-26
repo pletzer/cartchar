@@ -80,12 +80,12 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
     # contour points of the obstacle
     csvFiles = list(contour_csv_dir.glob('*.csv'))
 
-    outputDf = {'iexp': [], 'character': []}
+    outputDf = {'iexp': numpy.zeros(nexp, numpy.int), 'character': []}
     count = 0
     for j in range(ny + 1):
         for i in range(nx + 1):
-            outputDf[f'scattered_re_{count}'] = []
-            outputDf[f'scattered_im_{count}'] = []
+            outputDf[f'scattered_re_{count}'] = numpy.zeros(nexp, numpy.float32)
+            outputDf[f'scattered_im_{count}'] = numpy.zeros(nexp, numpy.float32)
             count += 1
 
     for iexp in range(nexp):
@@ -136,11 +136,11 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
                 wavelib.computeScatteredWave(kvecPtr, nc1, xcPtr, ycPtr, pPtr, 
                                              ctypes.byref(realVal), ctypes.byref(imagVal))
 
-                outputDf[f'scattered_re_{count}'].append(realVal.value)
-                outputDf[f'scattered_im_{count}'].append(imagVal.value)
+                outputDf[f'scattered_re_{count}'][iexp] = realVal.value
+                outputDf[f'scattered_im_{count}'][iexp] = imagVal.value
                 count += 1
 
-        outputDf['iexp'].append(iexp)
+        outputDf['iexp'] = iexp
 
     # write the results
     print(f'writing the results to {output_csv_file}')
