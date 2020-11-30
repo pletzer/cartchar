@@ -100,7 +100,7 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
         xscale = xc.max() - xc.min()
         yscale = yc.max() - yc.min()
         # want each obstacle to be about 5 wavelengths
-        factor = (10*lmbda) / yscale
+        factor = (5*lmbda) / yscale
         xc *= factor
         yc *= factor
 
