@@ -9,7 +9,7 @@ import os
 import random
 
 
-def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100, lmbda : float=0.2, nt : int=16):
+def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100, lmbda : float=0.1, nt : int=16, seed : int = 123):
     """Run simulation
 
     :param contour_csv_dir: directory holding the countour CSV files
@@ -18,6 +18,8 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
     :param lmbda: wave length
     :param nt: number of observation points
     """
+
+    random.seed(seed)
 
     if not str(contour_csv_dir):
         raise RuntimeError('ERROR must provide directory containing input contour CSV files')
@@ -71,7 +73,7 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
     kvecPtr = kvec.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
     # generate the observation points (grid)
-    rObs = 10 * lmbda
+    rObs = 2.0
     dt = twoPi / float(nt)
     ts = numpy.linspace(0. + 0.5*dt, twoPi	- 0.5*dt)
     xg = rObs * numpy.cos(ts)
@@ -109,9 +111,9 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
         # rescale so the object is of size 5 * wavelength
         xscale = xcmax - xcmin
         yscale = ycmax - ycmin
-        factor = (5*lmbda) / max(yscale, xscale)
-        xc *= factor
-        yc *= factor
+        factor = max(xscale, yscale)
+        xc /= factor
+        yc /= factor
 
         # apply a random rotation to the contour
         theta = dt * numpy.pi*random.random()
