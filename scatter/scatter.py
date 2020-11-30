@@ -145,7 +145,7 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
             outputData[f'scattered_re_{count}'][iexp] = realVal.value
             outputData[f'scattered_im_{count}'][iexp] = imagVal.value
 
-        outputData['iexp'] = iexp
+        outputData['iexp'][iexp] = iexp
 
     # write the results
     print(f'writing the results to {output_csv_file}')
