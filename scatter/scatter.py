@@ -9,14 +9,14 @@ import os
 import random
 
 
-def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100, lmbda : float=0.1, nt : int=16, seed : int = 123):
+def run(*, contour_csv_dir : Path='', output_csv_file : Path='', num_exp : int=100, lmbda : float=0.1, nt : int=16, seed : int = 123):
     """Run simulation
 
     :param contour_csv_dir: directory holding the countour CSV files
     :param output_csv_file: output CSV file
-    :param nexp: number of experiments
-    :param lmbda: wave length
-    :param nt: number of observation points
+    :param num_exp: number of experiments
+    :param lmbda: wave length relative to object size
+    :param nt: number of evenly distributed observation points
     """
 
     random.seed(seed)
@@ -75,7 +75,7 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
     # generate the observation points (grid)
     rObs = 2.0
     dt = twoPi / float(nt)
-    ts = numpy.linspace(0. + 0.5*dt, twoPi	- 0.5*dt)
+    ts = numpy.linspace(0. + 0.5*dt, twoPi  - 0.5*dt)
     xg = rObs * numpy.cos(ts)
     yg = rObs * numpy.sin(ts)
 
@@ -83,15 +83,18 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
     csvFiles = list(contour_csv_dir.glob('*.csv'))
 
     # allocate
-    outputData = {'iexp': numpy.zeros(nexp, numpy.int), 'object': []}
+    outputData = {'object': [], 
+                  'scale': numpy.zeros(num_exp, numpy.float32), 
+                  'angle_deg': numpy.zeros(num_exp, numpy.float32),
+                  }
     for count in range(nt):
-        outputData[f'scattered_re_{count}'] = numpy.zeros(nexp, numpy.float32)
-        outputData[f'scattered_im_{count}'] = numpy.zeros(nexp, numpy.float32)
+        outputData[f'scattered_re_{count}'] = numpy.zeros(num_exp, numpy.float32)
+        outputData[f'scattered_im_{count}'] = numpy.zeros(num_exp, numpy.float32)
 
     # generate the data
-    for iexp in range(nexp):
+    for iexp in range(num_exp):
 
-    	# randomly choose an object (aka CSV file with contour points)
+        # randomly choose an object (aka CSV file with contour points)
         csvFile = random.choice(csvFiles)
         objectType = csvFile.name.split('.')[0]
         outputData['object'].append(objectType)
@@ -108,21 +111,27 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
         # centre the contour
         xc -= xcmid
         yc -= ycmid
-        # rescale so the object is of size 5 * wavelength
+        # rescale so the object is of size ~ 5 * wavelength
         xscale = xcmax - xcmin
         yscale = ycmax - ycmin
-        factor = max(xscale, yscale)
-        xc /= factor
-        yc /= factor
+        scale = max(xscale, yscale)
+        # add randomness to the size
+        dscale = 0.2
+        scale *= (1.0 - dscale) + 2*dscale*random.random()
+        xc /= scale
+        yc /= scale
+        outputData['scale'][iexp] = scale
 
         # apply a random rotation to the contour
-        theta = dt * numpy.pi*random.random()
+        dTheta = 0.1 * twoPi
+        theta = -dTheta + 2*dTheta * random.random()
         cosTheta = numpy.cos(theta)
         sinTheta = numpy.sin(theta)
         xc2 =  cosTheta*xc + sinTheta*yc
         yc2 = -sinTheta*xc + cosTheta*yc
         xc[:] = xc2
         yc[:] = yc2
+        outputData['angle_deg'][iexp] = theta * 360 / twoPi
 
         # apply a small random shift
         xc += lmbda * (random.random() - 0.5)
@@ -146,8 +155,6 @@ def run(*, contour_csv_dir : Path='', output_csv_file : Path='', nexp : int=100,
             # separately store the real/imag parts of the scattered wave
             outputData[f'scattered_re_{count}'][iexp] = realVal.value
             outputData[f'scattered_im_{count}'][iexp] = imagVal.value
-
-        outputData['iexp'][iexp] = iexp
 
     # write the results
     print(f'writing the results to {output_csv_file}')
